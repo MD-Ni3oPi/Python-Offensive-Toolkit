@@ -1,0 +1,61 @@
+import cv2  # Hint: OpenCV, the "Computer Vision" library used for face and object detection.
+import os
+
+ROOT = '/root/Desktop/pictures'  # Hint: Source directory for images captured by the scraper.
+FACES = '/root/Desktop/faces'  # Hint: Destination for images where faces are found.
+TRAIN = '/root/Desktop/training'  # Hint: Folder containing the Haar Cascade XML "brain."
+
+
+def detect(srcdir=ROOT, tgtdir=FACES, train_dir=TRAIN):
+    # Ensure the output directory exists
+    if not os.path.exists(tgtdir):
+        os.makedirs(tgtdir)
+
+    files = os.listdir(srcdir)
+    print(f"[*] Scanning {len(files)} files in {srcdir}...")
+
+    for fname in files:
+        if not fname.lower().endswith(('.jpg', '.jpeg', '.png', '.webp')):
+            continue
+
+        fullname = os.path.join(srcdir, fname)
+        newname = os.path.join(tgtdir, fname)
+        img = cv2.imread(fullname)
+
+        if img is None:
+            continue
+
+        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        training = os.path.join(train_dir, 'haarcascade_frontalface_alt.xml')
+        cascade = cv2.CascadeClassifier(training)
+
+        # Using sensitive settings for web thumbnails
+        rects = cascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=2)
+
+        if len(rects) > 0:
+            print(f'[+] Got a face in {fname}!')
+            for x, y, w, h in rects:
+                cv2.rectangle(img, (x, y), (x + w, y + h), (127, 255, 0), 2)
+            cv2.imwrite(newname, img)
+        else:
+            print(f'[-] No faces found in {fname}.')
+
+    # --- AUTOMATED SUMMARY SECTION ---
+    # Hint: These os.listdir calls count the final results for the report.
+    total_scanned = len([f for f in os.listdir(srcdir) if f.lower().endswith(('.jpg', '.jpeg', '.png', '.webp'))])
+    total_faces = len(os.listdir(tgtdir))
+
+    print(f"\n" + "=" * 30)
+    print(f"--- Analysis Report ---")
+    print(f"Total Images Scanned: {total_scanned}")
+    print(f"Images with Faces:    {total_faces}")
+
+    if total_scanned > 0:
+        # Hint: Calculates the percentage of successful detections.
+        success_rate = (total_faces / total_scanned) * 100
+        print(f"Success Rate:         {success_rate:.2f}%")
+    print("=" * 30 + "\n")
+
+
+if __name__ == '__main__':
+    detect()
